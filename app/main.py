@@ -24,14 +24,14 @@ app.add_middleware(
 )
 
 
-app.include_router(auth_router, prefix="/auth")
+# app.include_router(auth_router, prefix="/auth")
 
 
 # Include routers
 app.include_router(superadmin_router)
 app.include_router(admin_router)
 app.include_router(supervisor_router)
-app.include_router(auth_router, prefix="/auth")
+app.include_router(auth_router, prefix="/api/auth")
 app.include_router(external_router)
 
 @app.get("/")
