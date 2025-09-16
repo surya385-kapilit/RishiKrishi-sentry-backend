@@ -4,5 +4,8 @@
   },
   "search.exclude": {
     "**/__pycache__": true
-  }
+  },
+  "python.analysis.extraPaths": [
+    "./app/config"
+  ]
 }

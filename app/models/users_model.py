@@ -123,3 +123,21 @@ def delete_matrix_user(user_id, tenant_id):
         raise
     finally:
         db_pool.putconn(conn)
+
+def update_user_password_in_db(email, new_hashed_password,tenant_id):
+    conn = db_pool.getconn()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE matrix SET password = %s, updated_at = %s WHERE email = %s AND tenant_id=%s", 
+                       (new_hashed_password, datetime.utcnow(), email,tenant_id))
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        conn.commit()
+        cursor.close()
+    except HTTPException as http_err:
+        raise http_err
+    except Exception as e:
+        print(f"[ERROR] Failed to update user password: {e}")
+        raise
+    finally:
+        db_pool.putconn(conn)

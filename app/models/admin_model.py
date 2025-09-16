@@ -209,8 +209,22 @@ def get_all_admins(page: int, limit: int, tenant_id: int | None, role: str | Non
     finally:
         db_pool.putconn(conn)
 
-
-
+def get_all_tenants_by_email(email):
+    conn = db_pool.getconn()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT ta.tenant_id, t.tenant_name
+                FROM matrix ta
+                JOIN tenants t ON ta.tenant_id = t.tenant_id
+                WHERE ta.email = %s
+                """,
+                (email,)
+            )
+            return cur.fetchall()
+    finally:
+        db_pool.putconn(conn)
 
 
 

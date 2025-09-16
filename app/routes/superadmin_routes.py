@@ -208,6 +208,117 @@ def delete_tenant(tenant_id: str, user: dict = Depends(verify_token)):
     delete_tenant_service(tenant_id)
     return {"message": "Tenant deleted successfully"}
 
+# # Admin CRUD Operations
+# @router.post("/create-admin", response_model=AdminResponse)
+# async def create_admin(req: Request):
+#     """
+#     Creates an admin user.
+#     1. Creates the user in the remote 'slave' service.
+#     2. If successful, creates or updates the user's record in the central 'matrix' table.
+#     """
+#     # 1. Parse the request body
+#     try:
+#         request_data = await req.json()
+#     except Exception:
+#         raise HTTPException(status_code=400, detail="Invalid JSON body provided.")
+
+#     tenant_id = request_data.get("tenant_id")
+#     full_name = request_data.get("full_name")
+#     email = request_data.get("email")
+#     phone = request_data.get("phone")
+
+#     # Validate essential data
+#     if not tenant_id:
+#         raise HTTPException(status_code=400, detail="tenant_id is required.")
+#     if not full_name:
+#         raise HTTPException(status_code=400, detail="full_name is required.")
+#     if not email:
+#         raise HTTPException(status_code=400, detail="email is required.")
+#     if not phone:
+#         raise HTTPException(status_code=400, detail="phone is required.")
+
+#     # 2. Get schema_id from DB using tenant_id
+#     try:
+#         schema_id = get_schema_for_tenant(tenant_id)
+#     except ValueError:
+#         raise HTTPException(status_code=404, detail=f"No schema found for tenant_id: {tenant_id}")
+#     except Exception:
+#         raise HTTPException(status_code=500, detail="Failed to fetch schema_id for tenant.")
+
+#     admin_data = {
+#         "tenant_id": tenant_id,
+#         "schema_id": schema_id,  # Now retrieved from DB
+#         "full_name": full_name,
+#         "email": email,
+#         "phone": phone,
+#     }
+
+#     # 3. Call SLAVE API to create admin
+#     auth_header = req.headers.get("Authorization")
+#     async with httpx.AsyncClient() as client:
+#         try:
+#             admin_created_response = await client.post(
+#                 f"{SLAVE_API_URL}/api/external/create-admin",
+#                 json={
+#                     "schema_id": schema_id,
+#                     "full_name": full_name,
+#                     "email": email,
+#                     "phone": phone,
+#                     "role": "ADMIN",
+#                 },
+#                 headers={"Authorization": auth_header},
+#                 timeout=30.0,
+#             )
+#         except httpx.RequestError as e:
+#             raise HTTPException(status_code=503, detail=f"Could not connect to slave service: {e}")
+
+#     # 4. Handle SLAVE API response
+#     if admin_created_response.status_code in [200, 201]:
+#         slave_response_data = admin_created_response.json()
+#         user_id = slave_response_data.get("user_id")
+#         role = slave_response_data.get("role", "ADMIN")
+
+#         if not user_id:
+#             return JSONResponse(status_code=500, content={"message": "Slave service returned success but no user_id."})
+
+#         # Check if user exists globally
+#         password, _, _, exists = lookup_existing_user_details(email, phone)
+#         if exists:
+#             hashed_password = password
+#         else:
+#             new_password_plain = "".join(random.choices("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", k=12))
+#             print("new_password_plain",new_password_plain)
+#             hashed_password = security.hash_password(new_password_plain)
+#             tenant_name=get_tenant_by_id_service(tenant_id)[1]
+#             try:
+#                 await send_admin_credentials_email(
+#                     full_name=full_name,
+#                     email=email,
+#                     password=new_password_plain,
+#                     tenant_name=tenant_name,  # You might want to fetch actual tenant_name here
+#                     role=role
+#                 )
+#             except HTTPException as e:
+#                 print(f"[WARNING] Failed to send email to {email}: {e.detail}")
+
+#         # Save to matrix table
+#         saved = save_user_in_matrix_table_with_password(
+#             user_id=user_id,
+#             tenant_id=tenant_id,
+#             full_name=full_name,
+#             email=email,
+#             phone=phone,
+#             password=hashed_password,
+#             role="ADMIN",
+#         )
+
+#         if saved:
+#             return JSONResponse(status_code=201, content={"message": "Admin created successfully.", "user_id": user_id, "name": full_name, "email": email})
+#         else:
+#             return JSONResponse(status_code=500, content={"message": "Failed to save user in matrix after slave success."})
+#     else:
+#         return JSONResponse(status_code=admin_created_response.status_code, content={"message": "Failed to create admin on slave.", "detail": admin_created_response.json()})
+
 # Admin CRUD Operations
 @router.post("/create-admin", response_model=AdminResponse)
 async def create_admin(req: Request):
@@ -245,14 +356,6 @@ async def create_admin(req: Request):
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to fetch schema_id for tenant.")
 
-    admin_data = {
-        "tenant_id": tenant_id,
-        "schema_id": schema_id,  # Now retrieved from DB
-        "full_name": full_name,
-        "email": email,
-        "phone": phone,
-    }
-
     # 3. Call SLAVE API to create admin
     auth_header = req.headers.get("Authorization")
     async with httpx.AsyncClient() as client:
@@ -281,25 +384,40 @@ async def create_admin(req: Request):
         if not user_id:
             return JSONResponse(status_code=500, content={"message": "Slave service returned success but no user_id."})
 
+        tenant_name = get_tenant_by_id_service(tenant_id)[1]
+
         # Check if user exists globally
         password, _, _, exists = lookup_existing_user_details(email, phone)
         if exists:
+            # Existing user: keep old password
             hashed_password = password
+            try:
+                await send_admin_credentials_email(
+                    full_name=full_name,
+                    email=email,
+                    tenant_name=tenant_name,
+                    password="(use your existing password)",
+                    role=role,
+                    is_existing_user=True,
+                    forgot_password_link="https://your-app.com/forgot-password"
+                )
+            except HTTPException as e:
+                print(f"[WARNING] Failed to send existing-user email to {email}: {e.detail}")
         else:
+            # New user: generate password
             new_password_plain = "".join(random.choices("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", k=12))
-            print("new_password_plain",new_password_plain)
             hashed_password = security.hash_password(new_password_plain)
-            tenant_name=get_tenant_by_id_service(tenant_id)[1]
             try:
                 await send_admin_credentials_email(
                     full_name=full_name,
                     email=email,
                     password=new_password_plain,
-                    tenant_name=tenant_name,  # You might want to fetch actual tenant_name here
-                    role=role
+                    tenant_name=tenant_name,
+                    role=role,
+                    is_new_user=True
                 )
             except HTTPException as e:
-                print(f"[WARNING] Failed to send email to {email}: {e.detail}")
+                print(f"[WARNING] Failed to send new-user email to {email}: {e.detail}")
 
         # Save to matrix table
         saved = save_user_in_matrix_table_with_password(
@@ -313,11 +431,23 @@ async def create_admin(req: Request):
         )
 
         if saved:
-            return JSONResponse(status_code=201, content={"message": "Admin created successfully.", "user_id": user_id, "name": full_name, "email": email})
+            return JSONResponse(
+                status_code=201,
+                content={
+                    "message": "Admin created successfully.",
+                    "user_id": user_id,
+                    "name": full_name,
+                    "email": email,
+                }
+            )
         else:
             return JSONResponse(status_code=500, content={"message": "Failed to save user in matrix after slave success."})
     else:
-        return JSONResponse(status_code=admin_created_response.status_code, content={"message": "Failed to create admin on slave.", "detail": admin_created_response.json()})
+        return JSONResponse(
+            status_code=admin_created_response.status_code,
+            content={"message": "Failed to create admin on slave.", "detail": admin_created_response.json()}
+        )
+
 
 
 @router.get("/users")

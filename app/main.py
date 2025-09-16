@@ -4,6 +4,7 @@ from app.routes.supervisor_router import router as supervisor_router
 from app.routes.superadmin_routes import router as superadmin_router
 from app.routes.admin_routes import router as admin_router
 from app.routes.auth_routes import router as auth_router
+from app.routes.otp_router import otp_router as otp_router
 
 from app.routes.external.external_router import router as external_router
 
@@ -24,15 +25,15 @@ app.add_middleware(
 )
 
 
+#mainly for testing
 app.include_router(auth_router, prefix="/auth")
-
-
 # Include routers
 app.include_router(superadmin_router)
 app.include_router(admin_router)
 app.include_router(supervisor_router)
 app.include_router(auth_router, prefix="/api/auth")
 app.include_router(external_router)
+app.include_router(otp_router)
 
 @app.get("/")
 def read_root():
