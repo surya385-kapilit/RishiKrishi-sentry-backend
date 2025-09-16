@@ -7,15 +7,6 @@ from app.schema.supervisor_schema import SupervisorLogin, SupervisorLoginRespons
 
 router = APIRouter(prefix="/api/auth", tags=["Supervisor"])
 
-# @router.post("/login", response_model=SupervisorLoginResponse, summary="Supervisor Login")
-# def login_supervisor(login_data: SupervisorLogin):
-#     try:
-#         return login_supervisor_service(login_data.email, login_data.password)
-#     except HTTPException as e:
-#         raise e
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
 
 @router.post("/login")
 def login_step_one(login_data: AdminLogin):

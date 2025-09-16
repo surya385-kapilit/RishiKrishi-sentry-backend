@@ -1,30 +1,29 @@
-import os
-from psycopg2 import pool
-from dotenv import load_dotenv
+# import os
+# from psycopg2 import pool
+# from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 
-try:
-    db_pool = pool.SimpleConnectionPool(
-        1,
-        10,
-        dsn=os.getenv("DATABASE_URL")
-    )
+# try:
+#     db_pool = pool.SimpleConnectionPool(
+#         1,
+#         10,
+#         dsn=os.getenv("DATABASE_URL")
+#     )
     
-    # Test connection
-    conn = db_pool.getconn()
-    if conn:
-        print("Database connection pool established successfully.")
-        db_pool.putconn(conn)
-    else:
-        raise Exception("Failed to retrieve a connection from the pool.")
+#     # Test connection
+#     conn = db_pool.getconn()
+#     if conn:
+#         print("Database connection pool established successfully.")
+#         db_pool.putconn(conn)
+#     else:
+#         raise Exception("Failed to retrieve a connection from the pool.")
         
-except Exception as e:
-    print(f"Database connection failed")
-    print(e)
+# except Exception as e:
+#     print(f"Database connection failed")
+#     print(e)
 
-
-''' import os
+import os
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
@@ -66,5 +65,4 @@ def get_connection():
     except Exception:
         # If validation fails, get a new connection
         conn = db_pool.getconn()
-    return conn'''
-
+    return conn
