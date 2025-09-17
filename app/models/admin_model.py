@@ -521,3 +521,21 @@ def save_user_in_matrix_table_with_password(
         return False
     finally:
         db_pool.putconn(conn)
+
+def get_all_tenants_by_email(email):
+    # conn = db_pool.getconn()
+    conn = get_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT ta.tenant_id, t.tenant_name
+                FROM matrix ta
+                JOIN tenants t ON ta.tenant_id = t.tenant_id
+                WHERE ta.email = %s
+                """,
+                (email,),
+            )
+            return cur.fetchall()
+    finally:
+        db_pool.putconn(conn)

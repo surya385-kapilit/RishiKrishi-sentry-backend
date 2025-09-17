@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from app.schema.admin_schema import AdminLogin, AdminLoginResponse, ChangePasswordRequest, CreateUserRequest, TenantLogin
+from app.models.admin_model import delete_admin, get_admin_by_id, get_all_tenants_by_email
+from app.schema.admin_schema import AdminLogin, AdminLoginResponse, ChangePasswordRequest, TenantLogin
 from app.services.admin_service import change_admin_password_service, login_admin_step_one, login_admin_step_two
-from app.services.superadmin_service import create_tenant_admin_service
+# from app.services.superadmin_service 
 from app.utils.jwt_token import verify_admin_token
-from app.models.admin_model import get_admin_by_id, get_admins_by_tenant,delete_admin, get_all_tenants_by_email,update_admin
-from app.schema.admin_schema import UpdateUserRequest
+# from app.models.admin_model import get_admin_by_id,delete_admin, get_all_tenants_by_email
+# from app.schema.admin_schema import UpdateUserRequest
 router = APIRouter(prefix="/api", tags=["admin"])
 
 
