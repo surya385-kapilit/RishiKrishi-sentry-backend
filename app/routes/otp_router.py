@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 from fastapi import APIRouter, HTTPException
+from fastapi.params import Body
 from pydantic import BaseModel, EmailStr
 
 from app.models.users_model import update_user_password_in_db
@@ -23,7 +24,7 @@ class VerifyOTPRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     email: EmailStr
-    otp: str
+    otp: Optional[str] = Body(None)
     tenant_id: str
     new_password: str
 
@@ -56,15 +57,36 @@ async def verify_otp_endpoint(req: VerifyOTPRequest):
     else:
         raise HTTPException(status_code=401, detail="Invalid or expired OTP")
 
+# @otp_router.post("/forgot-password/reset")
+# async def reset_password(req: ResetPasswordRequest):
+#     if not req.otp:
+#         hashed_password = security.hash_password(req.new_password)
+#         update_user_password_in_db(req.email,hash_password(req.new_password),req.tenant_id)
+#         return {"message": "Password reset successfully"}
+#     if verify_otp(req.email, req.otp):
+#         print("otp verified")
+#         hashed_password = security.hash_password(req.new_password)
+#         logger.debug(f"Password for {req.email} reset to hashed value {hashed_password}")
+#         # TODO: update DB with `hashed`
+#         update_user_password_in_db(req.email,hashed_password,req.tenant_id)  # Implement this function as needed  
+
+#         return {"message": "Password reset successfully"}
+#     else:
+#         raise HTTPException(status_code=401, detail="Invalid or expired OTP")
+
+
 @otp_router.post("/forgot-password/reset")
 async def reset_password(req: ResetPasswordRequest):
-    if verify_otp(req.email, req.otp):
-        print("otp verified")
+    if not req.otp:  # allow reset without OTP
         hashed_password = security.hash_password(req.new_password)
-        logger.debug(f"Password for {req.email} reset to hashed value {hashed_password}")
-        # TODO: update DB with `hashed`
-        update_user_password_in_db(req.email,hashed_password,req.tenant_id)  # Implement this function as needed  
-
+        update_user_password_in_db(req.email, hashed_password, req.tenant_id)
         return {"message": "Password reset successfully"}
-    else:
-        raise HTTPException(status_code=401, detail="Invalid or expired OTP")
+    
+    if req.otp and verify_otp(req.email, req.otp):
+        hashed_password = security.hash_password(req.new_password)
+        update_user_password_in_db(req.email, hashed_password, req.tenant_id)
+        return {"message": "Password reset successfully"}
+    
+    
+
+    raise HTTPException(status_code=401, detail="Invalid or expired OTP")
