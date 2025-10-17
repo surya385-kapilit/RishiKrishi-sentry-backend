@@ -67,7 +67,8 @@ async def create_user_from_slave(
                     email=user_data.email,
                     password=new_password_plain,
                     tenant_name=tenant_name,
-                    role=user_data.role
+                    role=user_data.role,
+                    is_new_user=True
                 )
             except Exception as e:
                 print(f"[WARNING] Failed to send email to {user_data.email}: {e}")

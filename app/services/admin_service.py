@@ -88,7 +88,7 @@ def change_admin_password_service(tenant_id: str, email: str, old_password: str,
         raise HTTPException(status_code=404, detail="Admin not found for this tenant")
 
     if not verify_password(old_password, admin["password"]):
-        raise HTTPException(status_code=401, detail="Old password is incorrect")
+        raise HTTPException(status_code=400, detail="Old password is incorrect")
     
     if old_password == new_password:
         raise HTTPException(status_code=400, detail="New password cannot be the same as old password")
